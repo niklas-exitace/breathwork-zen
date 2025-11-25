@@ -81,8 +81,8 @@ export default function Home() {
       (window as any).fbq('track', 'Lead', { content_name: result })
     }
 
-    // Download PDF
-    window.open('/guides/enso-breathwork-guide.pdf', '_blank')
+    // Download personalized PDF via API
+    window.open(`/api/guide?type=${result}`, '_blank')
   }
 
   const resultContent = {
