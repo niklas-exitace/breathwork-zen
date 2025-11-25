@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ENSŌ - Zen Breathwork Design */
+
+:root {
+  --zen-bg: #FAFAF9;
+  --zen-text: #292524;
+  --zen-slate: #64748B;
+  --zen-amber: #B45309;
+  --zen-paper: #F5F5F4;
+  --zen-border: #E7E5E4;
+}
+
+body {
+  background-color: var(--zen-bg);
+  color: var(--zen-text);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Custom Thin Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--zen-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--zen-border);
+}
+
+/* Selection */
+::selection {
+  background-color: var(--zen-amber);
+  color: white;
+}
+
+/* Animations */
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.5); opacity: 0.1; }
+}
+
+@keyframes fadeUp {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-breathe {
+  animation: breathe 8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-fade-up {
+  animation: fadeUp 1s ease-out forwards;
+}
+
+/* Reveal animation */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 1.2s ease-out;
+}
+
+.reveal.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Thin line dividers */
+.thin-line {
+  height: 1px;
+  background-color: var(--zen-border);
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Form styling */
+input[type="email"] {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--zen-border);
+  padding: 0.75rem 0;
+  width: 100%;
+  font-size: 1rem;
+  color: var(--zen-text);
+  transition: border-color 0.3s ease;
+}
+
+input[type="email"]:focus {
+  outline: none;
+  border-bottom-color: var(--zen-text);
+}
+
+input[type="email"]::placeholder {
+  color: var(--zen-slate);
+}
+
+/* Button styles */
+.btn-zen {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--zen-text);
+  background: transparent;
+  color: var(--zen-text);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.5s ease;
+}
+
+.btn-zen:hover {
+  background: var(--zen-text);
+  color: white;
+}
+
+.btn-zen:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
