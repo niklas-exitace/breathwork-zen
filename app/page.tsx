@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 
-type QuizStep = 'intro' | 'q1' | 'q2' | 'q3' | 'q4' | 'q5' | 'result' | 'email' | 'complete'
+type QuizStep = 'intro' | 'q1' | 'q2' | 'q3' | 'q4' | 'q5' | 'result'
 
 interface QuizAnswers {
   stress: string
@@ -21,8 +21,6 @@ export default function Home() {
     goal: '',
     time: ''
   })
-  const [email, setEmail] = useState('')
-  const [loading, setLoading] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [result, setResult] = useState<'calm' | 'focus' | 'sleep' | 'energy'>('calm')
 
@@ -41,8 +39,8 @@ export default function Home() {
   }, [])
 
   // Calculate result based on answers
-  const calculateResult = () => {
-    const { stress, sleep, goal } = answers
+  const calculateResult = (): 'calm' | 'focus' | 'sleep' | 'energy' => {
+    const { sleep, goal, stress } = answers
 
     if (goal === 'sleep' || sleep === 'poor') return 'sleep'
     if (goal === 'focus') return 'focus'
@@ -51,7 +49,8 @@ export default function Home() {
   }
 
   const handleAnswer = (question: keyof QuizAnswers, answer: string) => {
-    setAnswers(prev => ({ ...prev, [question]: answer }))
+    const newAnswers = { ...answers, [question]: answer }
+    setAnswers(newAnswers)
 
     // Progress to next step
     const steps: QuizStep[] = ['q1', 'q2', 'q3', 'q4', 'q5', 'result']
@@ -59,67 +58,64 @@ export default function Home() {
 
     if (currentIndex < steps.length - 1) {
       setTimeout(() => setStep(steps[currentIndex + 1]), 300)
-    } else {
-      setResult(calculateResult())
+    }
+
+    // If this is the last question, calculate result
+    if (step === 'q5') {
+      // Calculate with new answers since state hasn't updated yet
+      const finalAnswers = { ...answers, [question]: answer }
+      let finalResult: 'calm' | 'focus' | 'sleep' | 'energy' = 'calm'
+
+      if (finalAnswers.goal === 'sleep' || finalAnswers.sleep === 'poor') finalResult = 'sleep'
+      else if (finalAnswers.goal === 'focus') finalResult = 'focus'
+      else if (finalAnswers.goal === 'energy' || finalAnswers.stress === 'low') finalResult = 'energy'
+
+      setResult(finalResult)
       setTimeout(() => setStep('result'), 300)
     }
   }
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-
-    try {
-      await fetch('/api/lead', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          variant: 'breathwork-zen',
-          quizResult: result,
-          answers
-        })
-      })
-
-      if (typeof window !== 'undefined' && (window as any).fbq) {
-        (window as any).fbq('track', 'Lead')
-      }
-
-      setStep('complete')
-    } catch (error) {
-      console.error('Error:', error)
-    } finally {
-      setLoading(false)
+  const handleDownload = () => {
+    // Track conversion
+    if (typeof window !== 'undefined' && (window as any).fbq) {
+      (window as any).fbq('track', 'Lead', { content_name: result })
     }
+
+    // Download PDF
+    window.open('/guides/enso-breathwork-guide.pdf', '_blank')
   }
 
   const resultContent = {
     calm: {
       title: 'The Calm Seeker',
       description: 'Your nervous system is craving stillness. The techniques in your personalized guide focus on activating your parasympathetic response for deep, lasting calm.',
-      techniques: ['Box Breathing', '4-7-8 Method', 'Coherent Breathing']
+      techniques: ['Box Breathing', '4-7-8 Method', 'Coherent Breathing'],
+      color: 'zen-amber'
     },
     focus: {
       title: 'The Focus Builder',
       description: 'Mental clarity is your priority. Your guide emphasizes techniques that sharpen attention and clear brain fog through rhythmic, energizing patterns.',
-      techniques: ['Kapalabhati', 'Alternate Nostril', 'Box Breathing']
+      techniques: ['Kapalabhati', 'Alternate Nostril', 'Box Breathing'],
+      color: 'blue-500'
     },
     sleep: {
       title: 'The Rest Restorer',
       description: 'Quality sleep is within reach. Your personalized guide features techniques specifically designed to prepare your body and mind for deep, restorative rest.',
-      techniques: ['4-7-8 Method', 'Body Scan Breathing', 'Extended Exhale']
+      techniques: ['4-7-8 Method', 'Body Scan Breathing', 'Extended Exhale'],
+      color: 'purple-500'
     },
     energy: {
       title: 'The Energy Cultivator',
       description: 'You\'re ready to elevate your vitality. Your guide includes invigorating techniques that naturally boost energy without caffeine or stimulants.',
-      techniques: ['Breath of Fire', 'Energizing Kapalabhati', 'Power Breathing']
+      techniques: ['Breath of Fire', 'Energizing Kapalabhati', 'Power Breathing'],
+      color: 'orange-500'
     }
   }
 
   // Progress indicator
   const getProgress = () => {
     const progressMap: Record<QuizStep, number> = {
-      intro: 0, q1: 20, q2: 40, q3: 60, q4: 80, q5: 100, result: 100, email: 100, complete: 100
+      intro: 0, q1: 20, q2: 40, q3: 60, q4: 80, q5: 100, result: 100
     }
     return progressMap[step]
   }
@@ -180,19 +176,19 @@ export default function Home() {
       {/* Navigation */}
       <nav className={`fixed w-full z-50 top-0 transition-all duration-500 ${scrolled ? 'bg-zen-bg/95 backdrop-blur-sm shadow-sm' : 'bg-zen-bg/90 backdrop-blur-sm'}`}>
         <div className="max-w-6xl mx-auto px-6 py-6 flex justify-between items-center">
-          <a href="#" className="font-serif text-2xl tracking-widest text-zen-text hover:opacity-70 transition-opacity">
+          <a href="#" onClick={() => setStep('intro')} className="font-serif text-2xl tracking-widest text-zen-text hover:opacity-70 transition-opacity">
             ENSŌ
           </a>
-          {step !== 'intro' && step !== 'complete' && (
+          {step !== 'intro' && step !== 'result' && (
             <div className="text-sm text-zen-slate">
-              {step === 'result' || step === 'email' ? 'Your Result' : `Question ${step.replace('q', '')} of 5`}
+              Question {step.replace('q', '')} of 5
             </div>
           )}
         </div>
       </nav>
 
       {/* Progress Bar */}
-      {step !== 'intro' && step !== 'complete' && (
+      {step !== 'intro' && step !== 'result' && (
         <div className="fixed top-[72px] left-0 right-0 h-1 bg-zen-border z-40">
           <div
             className="h-full bg-zen-amber transition-all duration-500 ease-out"
@@ -226,7 +222,7 @@ export default function Home() {
             </button>
 
             <p className="text-xs text-zen-slate/60 mt-6">
-              5 simple questions • Takes 60 seconds • Free PDF guide
+              5 simple questions • Takes 60 seconds • Instant PDF download
             </p>
           </div>
         </section>
@@ -267,9 +263,9 @@ export default function Home() {
         )
       })}
 
-      {/* RESULT */}
+      {/* RESULT + DOWNLOAD */}
       {step === 'result' && (
-        <section className="min-h-screen flex flex-col justify-center items-center px-6 pt-24">
+        <section className="min-h-screen flex flex-col justify-center items-center px-6 pt-24 pb-12">
           <div className="max-w-xl mx-auto w-full text-center animate-fade-up">
             <div className="w-20 h-20 mx-auto mb-8 rounded-full border border-zen-amber/30 flex items-center justify-center">
               <div className="w-14 h-14 rounded-full bg-zen-amber/10 animate-breathe" />
@@ -294,80 +290,30 @@ export default function Home() {
               </div>
             </div>
 
-            <button
-              onClick={() => setStep('email')}
-              className="btn-zen inline-block px-12"
-            >
-              Get Your Free Guide
-            </button>
-          </div>
-        </section>
-      )}
-
-      {/* EMAIL CAPTURE */}
-      {step === 'email' && (
-        <section className="min-h-screen flex flex-col justify-center items-center px-6 pt-24">
-          <div className="max-w-md mx-auto w-full text-center animate-fade-up">
-            <h2 className="font-serif text-2xl md:text-3xl text-zen-text mb-4 font-light">
-              Your Personalized Guide is Ready
-            </h2>
-            <p className="text-zen-slate font-light mb-8">
-              Enter your email to receive your free "{resultContent[result].title}" breathwork guide.
-            </p>
-
-            <div className="bg-white border border-zen-border rounded-lg p-8 shadow-sm">
-              <div className="flex items-center justify-center gap-3 mb-6 text-sm text-zen-slate">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            {/* Download Card */}
+            <div className="bg-white border border-zen-border rounded-lg p-8 shadow-sm mb-8">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <svg className="w-8 h-8 text-zen-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <span>PDF Guide + Audio Companion</span>
               </div>
 
-              <form onSubmit={handleEmailSubmit} className="space-y-4">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  required
-                  className="text-center"
-                />
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn-zen"
-                >
-                  {loading ? 'Sending...' : 'Send My Free Guide'}
-                </button>
-              </form>
-
-              <p className="text-xs text-zen-slate/60 mt-4">
-                No spam, ever. Unsubscribe anytime.
+              <h3 className="font-serif text-xl text-zen-text mb-2">Your Personalized Guide</h3>
+              <p className="text-sm text-zen-slate mb-6">
+                8-page PDF with techniques, schedules & quick-reference cards
               </p>
-            </div>
-          </div>
-        </section>
-      )}
 
-      {/* COMPLETE */}
-      {step === 'complete' && (
-        <section className="min-h-screen flex flex-col justify-center items-center px-6 pt-24">
-          <div className="max-w-md mx-auto w-full text-center animate-fade-up">
-            <div className="w-20 h-20 mx-auto mb-8 rounded-full bg-green-100 flex items-center justify-center">
-              <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+              <button
+                onClick={handleDownload}
+                className="btn-zen inline-block px-12"
+              >
+                Download Free Guide
+              </button>
             </div>
 
-            <h2 className="font-serif text-3xl text-zen-text mb-4 font-light">
-              Check Your Inbox
-            </h2>
-            <p className="text-zen-slate font-light mb-8">
-              Your personalized "{resultContent[result].title}" guide is on its way to <strong>{email}</strong>
-            </p>
-
-            <div className="bg-zen-paper border border-zen-border rounded-lg p-6 text-left">
-              <p className="font-medium text-zen-text mb-3">What's in your guide:</p>
+            {/* What's Inside */}
+            <div className="text-left bg-zen-paper border border-zen-border rounded-lg p-6">
+              <p className="font-medium text-zen-text mb-3 text-center">What's in your guide:</p>
               <ul className="space-y-2 text-sm text-zen-slate">
                 <li className="flex items-start gap-2">
                   <span className="text-zen-amber">✓</span>
@@ -388,15 +334,22 @@ export default function Home() {
               </ul>
             </div>
 
-            <p className="text-sm text-zen-slate/60 mt-8 font-serif italic">
-              "Breath is the bridge which connects life to consciousness." — Thich Nhat Hanh
-            </p>
+            {/* Retake */}
+            <button
+              onClick={() => {
+                setStep('intro')
+                setAnswers({ stress: '', sleep: '', experience: '', goal: '', time: '' })
+              }}
+              className="mt-8 text-sm text-zen-slate hover:text-zen-text transition-colors"
+            >
+              ← Retake assessment
+            </button>
           </div>
         </section>
       )}
 
       {/* Footer */}
-      <footer className="py-8 text-center text-xs text-zen-slate/50 border-t border-zen-border mt-auto">
+      <footer className="py-8 text-center text-xs text-zen-slate/50 border-t border-zen-border">
         <p>&copy; 2024 Ensō Breathwork. Stillness is the key.</p>
       </footer>
     </main>
